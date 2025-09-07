@@ -1,0 +1,187 @@
+# .github/workflows/resolve-domain-ip.yml
+name: Resolve Domain IP and Filter by Region
+
+on:
+  schedule:
+    # 每小时运行一次 (UTC时间)
+    - cron: '0 * * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  resolve-ip:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        pip install requests dnspython
+        
+    - name: Resolve domain and filter IPs
+      env:
+        DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+      run: |
+        python << 'EOF'
+        import dns.resolver
+        import requests
+        import json
+        import os
+        import sys
+        from datetime import datetime
+
+        def get_domain_ips(domain):
+            """解析域名获取所有A记录IP地址"""
+            try:
+                ips = []
+                # 解析A记录
+                a_records = dns.resolver.resolve(domain, 'A')
+                for record in a_records:
+                    ips.append(str(record))
+                
+                # 尝试解析AAAA记录 (IPv6)
+                try:
+                    aaaa_records = dns.resolver.resolve(domain, 'AAAA')
+                    for record in aaaa_records:
+                        ips.append(str(record))
+                except:
+                    pass  # IPv6记录可能不存在
+                
+                return list(set(ips))  # 去重
+            except Exception as e:
+                print(f"DNS解析错误: {e}")
+                return []
+
+        def get_ip_location(ip):
+            """获取IP地址的地理位置信息"""
+            try:
+                # 使用免费的IP地理位置API
+                response = requests.get(f"http://ip-api.com/json/{ip}", timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data['status'] == 'success':
+                        return {
+                            'ip': ip,
+                            'country': data.get('country', ''),
+                            'countryCode': data.get('countryCode', ''),
+                            'region': data.get('regionName', ''),
+                            'city': data.get('city', ''),
+                            'isp': data.get('isp', '')
+                        }
+                return None
+            except Exception as e:
+                print(f"获取IP {ip} 位置信息失败: {e}")
+                return None
+
+        def is_target_region(location_info):
+            """检查IP是否属于目标地区（香港、台湾、日本、新加坡）"""
+            if not location_info:
+                return False
+            
+            country = location_info.get('country', '').lower()
+            country_code = location_info.get('countryCode', '').lower()
+            region = location_info.get('region', '').lower()
+            
+            # 定义目标地区的关键词
+            target_regions = {
+                'hong kong': ['hong kong', 'hk'],
+                'taiwan': ['taiwan', 'tw', 'republic of china'],
+                'japan': ['japan', 'jp'],
+                'singapore': ['singapore', 'sg']
+            }
+            
+            for region_name, keywords in target_regions.items():
+                for keyword in keywords:
+                    if keyword in country.lower() or keyword in country_code or keyword in region.lower():
+                        return True, region_name
+            
+            return False, None
+
+        # 主程序
+        def main():
+            domain = os.getenv('DOMAIN_NAME')
+            if not domain:
+                print("错误: 未找到DOMAIN_NAME环境变量")
+                sys.exit(1)
+            
+            print(f"开始解析域名: {domain}")
+            
+            # 解析域名获取IP列表
+            ips = get_domain_ips(domain)
+            if not ips:
+                print("未获取到任何IP地址")
+                return
+            
+            print(f"找到 {len(ips)} 个IP地址: {ips}")
+            
+            # 筛选目标地区的IP
+            target_ips = []
+            
+            for ip in ips:
+                print(f"正在检查IP: {ip}")
+                location_info = get_ip_location(ip)
+                
+                if location_info:
+                    is_target, region_name = is_target_region(location_info)
+                    if is_target:
+                        target_ips.append({
+                            'ip': ip,
+                            'region': region_name,
+                            'country': location_info['country'],
+                            'city': location_info['city'],
+                            'isp': location_info['isp']
+                        })
+                        print(f"✓ {ip} 属于目标地区: {region_name}")
+                    else:
+                        print(f"✗ {ip} 不属于目标地区: {location_info['country']}")
+                else:
+                    print(f"✗ 无法获取 {ip} 的位置信息")
+                
+                # 添加延迟避免API限制
+                import time
+                time.sleep(1)
+            
+            # 生成ip.txt文件
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+            
+            with open('ip.txt', 'w', encoding='utf-8') as f:
+                f.write(f"# 域名IP解析结果 - {timestamp}\n")
+                f.write(f"# 域名: {domain}\n")
+                f.write(f"# 筛选地区: 香港、台湾、日本、新加坡\n")
+                f.write(f"# 找到 {len(target_ips)} 个符合条件的IP地址\n\n")
+                
+                if target_ips:
+                    for ip_info in target_ips:
+                        f.write(f"{ip_info['ip']}\n")
+                        f.write(f"# 地区: {ip_info['region']}\n")
+                        f.write(f"# 国家: {ip_info['country']}\n")
+                        f.write(f"# 城市: {ip_info['city']}\n")
+                        f.write(f"# ISP: {ip_info['isp']}\n\n")
+                else:
+                    f.write("# 未找到符合条件的IP地址\n")
+            
+            print(f"结果已保存到 ip.txt 文件，共找到 {len(target_ips)} 个符合条件的IP")
+
+        if __name__ == "__main__":
+            main()
+        EOF
+        
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # 检查是否有变化
+        if [ -f "ip.txt" ] && [ -n "$(git status --porcelain)" ]; then
+          git add ip.txt
+          git commit -m "Update domain IP list - $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          git push
+        else
+          echo "没有检测到变化，跳过提交"
+        fi
