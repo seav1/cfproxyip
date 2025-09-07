@@ -1,9 +1,8 @@
-# .github/workflows/resolve-domain-ip.yml
 name: Resolve Domain IP and Filter by Region
 
 on:
   schedule:
-    # 每小时运行一次 (UTC时间)
+    # 每4小时运行一次 (UTC时间)
     - cron: '0 */4 * * *'
   workflow_dispatch: # 允许手动触发
 
@@ -110,7 +109,7 @@ jobs:
                 print("错误: 未找到DOMAIN_NAME环境变量")
                 sys.exit(1)
             
-            print(f"开始解析域名: {domain}")
+            print("开始解析域名...")
             
             # 解析域名获取IP列表
             ips = get_domain_ips(domain)
@@ -118,7 +117,7 @@ jobs:
                 print("未获取到任何IP地址")
                 return
             
-            print(f"找到 {len(ips)} 个IP地址: {ips}")
+            print(f"找到 {len(ips)} 个IP地址")
             
             # 筛选目标地区的IP
             target_ips = []
@@ -151,7 +150,7 @@ jobs:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
             
             with open('ip.txt', 'w', encoding='utf-8') as f:
-                f.write(f"# 域名IP解析结果 - {timestamp}\n")
+                f.write(f"# IP解析结果 - {timestamp}\n")
                 f.write(f"# 筛选地区: 香港、台湾、日本、新加坡\n")
                 f.write(f"# 找到 {len(target_ips)} 个符合条件的IP地址\n\n")
                 
