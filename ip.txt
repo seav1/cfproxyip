@@ -1,12 +1,6 @@
-# IP解析结果 - 2025-09-07 12:54:09 UTC
+# IP解析结果 - 2025-09-07 16:19:33 UTC
 # 筛选地区: 香港、台湾、日本、新加坡
 # 找到 3 个符合条件的IP地址
-
-217.142.236.93
-# 地区: japan
-# 国家: Japan
-# 城市: Osaka
-# ISP: Oracle Corporation
 
 45.76.198.248
 # 地区: japan
@@ -19,4 +13,10 @@
 # 国家: Japan
 # 城市: Minamishinagawa
 # ISP: The Constant Company
+
+217.142.236.93
+# 地区: japan
+# 国家: Japan
+# 城市: Osaka
+# ISP: Oracle Corporation
 
