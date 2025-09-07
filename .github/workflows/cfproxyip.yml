@@ -4,7 +4,7 @@ name: Resolve Domain IP and Filter by Region
 on:
   schedule:
     # 每小时运行一次 (UTC时间)
-    - cron: '0 * * * *'
+    - cron: '0 */4 * * *'
   workflow_dispatch: # 允许手动触发
 
 jobs:
@@ -152,7 +152,6 @@ jobs:
             
             with open('ip.txt', 'w', encoding='utf-8') as f:
                 f.write(f"# 域名IP解析结果 - {timestamp}\n")
-                f.write(f"# 域名: {domain}\n")
                 f.write(f"# 筛选地区: 香港、台湾、日本、新加坡\n")
                 f.write(f"# 找到 {len(target_ips)} 个符合条件的IP地址\n\n")
                 
