@@ -1,7 +1,13 @@
-# 域名IP解析结果 - 2025-09-07 06:38:57 UTC
+# 域名IP解析结果 - 2025-09-07 07:15:12 UTC
 # 域名: bpb.yousef.isegaro.com
 # 筛选地区: 香港、台湾、日本、新加坡
 # 找到 3 个符合条件的IP地址
+
+45.76.198.248
+# 地区: japan
+# 国家: Japan
+# 城市: Minamishinagawa
+# ISP: The Constant Company
 
 217.142.236.93
 # 地区: japan
@@ -10,12 +16,6 @@
 # ISP: Oracle Corporation
 
 149.28.21.106
-# 地区: japan
-# 国家: Japan
-# 城市: Minamishinagawa
-# ISP: The Constant Company
-
-45.76.198.248
 # 地区: japan
 # 国家: Japan
 # 城市: Minamishinagawa
